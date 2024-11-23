@@ -8,3 +8,13 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+-keep class com.facebook.react.** { *; }
+-keep public class com.facebook.soloader.** { *; }
+-keep class com.facebook.jni.** { *; }
+-keepclassmembers class * {
+    native <methods>;
+}
+-keepclassmembers class * {
+    @com.facebook.proguard.annotations.DoNotStrip *;
+}
+-dontwarn com.facebook.react.**

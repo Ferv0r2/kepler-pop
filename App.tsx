@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import styled from 'styled-components/native'
 import GameBoard from '@/components/GameBoard'
 import { SafeAreaView } from 'react-native'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 const StyledSafeAreaView = styled(SafeAreaView)`
   flex: 1;
@@ -38,14 +39,16 @@ export default function App() {
     setScore((prevScore) => prevScore + points)
   }
   return (
-    <StyledSafeAreaView>
-      <Container>
-        <Header>
-          <Title>Kepler Pop</Title>
-          <Score>Score: {score}</Score>
-        </Header>
-        <GameBoard onScoreChange={handleScoreChange} />
-      </Container>
-    </StyledSafeAreaView>
+    <SafeAreaProvider>
+      <StyledSafeAreaView>
+        <Container>
+          <Header>
+            <Title>Kepler Pop</Title>
+            <Score>Score: {score}</Score>
+          </Header>
+          <GameBoard onScoreChange={handleScoreChange} />
+        </Container>
+      </StyledSafeAreaView>
+    </SafeAreaProvider>
   )
 }
