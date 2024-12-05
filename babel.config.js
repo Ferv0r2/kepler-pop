@@ -11,6 +11,7 @@ module.exports = {
         },
       },
     ],
+    ['react-native-reanimated/plugin'],
     '@babel/plugin-transform-private-methods',
     '@babel/plugin-transform-class-properties',
     '@babel/plugin-proposal-private-property-in-object',

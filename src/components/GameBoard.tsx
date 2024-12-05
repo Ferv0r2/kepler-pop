@@ -35,7 +35,7 @@ type GameBoardProps = {
   onScoreChange: (score: number) => void
 }
 
-export default function GameBoard({ onScoreChange }: GameBoardProps) {
+export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
   const [board, setBoard] = useState<TileType[][]>([])
   const [selectedTile, setSelectedTile] = useState<{
     x: number
@@ -63,6 +63,7 @@ export default function GameBoard({ onScoreChange }: GameBoardProps) {
       matches = checkMatches(newBoard)
     } while (matches.length > 0) // 매칭이 없을 때까지 반복
 
+    console.log('Initialized board:', newBoard)
     setBoard(newBoard)
   }
 
