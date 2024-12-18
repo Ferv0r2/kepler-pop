@@ -163,10 +163,10 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
   return (
     <BoardContainer>
       {board.map((row, y) => (
-        <Row key={y}>
+        <Row key={`row-${y}`}>
           {row.map((tile, x) => (
             <Tile
-              key={tile.id}
+              key={`tile-${y}-${x}-${tile.type}`}
               type={tile.type}
               size={TILE_SIZE}
               isSelected={selectedTile?.x === x && selectedTile?.y === y}
