@@ -35,7 +35,7 @@ type GameBoardProps = {
   onScoreChange: (score: number) => void
 }
 
-export default function GameBoard({ onScoreChange }: GameBoardProps) {
+export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
   const [board, setBoard] = useState<TileType[][]>([])
   const [selectedTile, setSelectedTile] = useState<{
     x: number
@@ -63,6 +63,7 @@ export default function GameBoard({ onScoreChange }: GameBoardProps) {
       matches = checkMatches(newBoard)
     } while (matches.length > 0) // 매칭이 없을 때까지 반복
 
+    console.log('Initialized board:', newBoard)
     setBoard(newBoard)
   }
 
@@ -162,10 +163,10 @@ export default function GameBoard({ onScoreChange }: GameBoardProps) {
   return (
     <BoardContainer>
       {board.map((row, y) => (
-        <Row key={y}>
+        <Row key={`row-${y}`}>
           {row.map((tile, x) => (
             <Tile
-              key={tile.id}
+              key={`tile-${y}-${x}-${tile.type}`}
               type={tile.type}
               size={TILE_SIZE}
               isSelected={selectedTile?.x === x && selectedTile?.y === y}
