@@ -1,4 +1,4 @@
-import { TileType } from '@/components/GameBoard'
+import type { TileType } from '@/types/TileType'
 import { BOARD_SIZE } from '@/constants/basicConfig'
 
 export const checkMatches = (board: TileType[][]): number[][] => {
@@ -65,14 +65,23 @@ export const checkMatches = (board: TileType[][]): number[][] => {
 
   return matches
 }
-export const dropTiles = (board: any[][]) => {
+export const dropTiles = (board: TileType[][]) => {
   for (let x = 0; x < BOARD_SIZE; x++) {
     let bottomY = BOARD_SIZE - 1
     for (let y = BOARD_SIZE - 1; y >= 0; y--) {
       if (board[y][x].type !== -1) {
         if (bottomY !== y) {
-          board[bottomY][x] = { ...board[y][x], y: bottomY }
-          board[y][x] = { ...board[y][x], type: -1 }
+          // 아래칸으로 이동
+          board[bottomY][x] = {
+            ...board[y][x],
+            y: bottomY,
+            x,
+          }
+          // 원래 위치는 -1
+          board[y][x] = {
+            ...board[y][x],
+            type: -1,
+          }
         }
         bottomY--
       }
@@ -80,7 +89,7 @@ export const dropTiles = (board: any[][]) => {
   }
 }
 
-export const generateNewTiles = (board: any[][]) => {
+export const generateNewTiles = (board: TileType[][]) => {
   for (let y = 0; y < BOARD_SIZE; y++) {
     for (let x = 0; x < BOARD_SIZE; x++) {
       if (board[y][x].type === -1) {
