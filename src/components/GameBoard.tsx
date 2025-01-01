@@ -38,6 +38,11 @@ const AnimatedTileContainer = styled(Animated.View)`
   height: ${TILE_SIZE}px;
 `
 
+const GestureRecognizerContainer = styled(GestureRecognizer)`
+  width: 100%;
+  height: 100%;
+`
+
 type GameBoardProps = {
   onScoreChange: (score: number) => void
 }
@@ -262,17 +267,15 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
 
             return (
               <AnimatedTileContainer key={tile.id} style={tileAnimStyle}>
-                <GestureRecognizer
+                <GestureRecognizerContainer
                   onSwipe={(dir) => handleSwipe(dir, x, y)}
                   config={{
                     velocityThreshold: 0.2,
                     directionalOffsetThreshold: 80,
                   }}
-                  // 해당 타일 영역만큼
-                  style={{ width: '100%', height: '100%' }}
                 >
                   <Tile type={tile.type} size={TILE_SIZE} />
-                </GestureRecognizer>
+                </GestureRecognizerContainer>
               </AnimatedTileContainer>
             )
           }),
