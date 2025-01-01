@@ -1,54 +1,55 @@
-import React, { useState } from 'react'
-import styled from 'styled-components/native'
-import GameBoard from '@/components/GameBoard'
-import { SafeAreaView } from 'react-native'
+import React, { FC } from 'react'
+import { NavigationContainer } from '@react-navigation/native'
+import LoadingScreen from '@/screens/LoadingScreen'
+import MainScreen from '@/screens/MainScreen'
+// import AvatarScreen from '@/screens/AvatarScreen'
+// import SettingsScreen from '@/screens/SettingsScreen'
+import PlayGameScreen from '@/screens/PlayGameScreen'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import styled from 'styled-components/native'
+import { Platform, UIManager } from 'react-native'
 
-const StyledSafeAreaView = styled(SafeAreaView)`
+export type RootStackParamList = {
+  Loading: undefined
+  Main: undefined
+  Avatar: undefined
+  Settings: undefined
+  Game: undefined
+}
+
+const StyledGestureHandlerRootView = styled(GestureHandlerRootView)`
   flex: 1;
 `
 
-const Container = styled.View`
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-  background-color: #fff;
-`
+const Stack = createNativeStackNavigator<RootStackParamList>()
 
-const Header = styled.View`
-  padding: 20px;
-  align-items: center;
-`
-
-const Title = styled.Text`
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: #333;
-`
-
-const Score = styled.Text`
-  font-size: 18px;
-  color: #666;
-`
-
-export default function App() {
-  const [score, setScore] = useState(0)
-
-  const handleScoreChange = (points: number) => {
-    setScore((prevScore) => prevScore + points)
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true)
   }
+}
+
+const App: FC = () => {
   return (
     <SafeAreaProvider>
-      <StyledSafeAreaView>
-        <Container>
-          <Header>
-            <Title>Kepler Pop</Title>
-            <Score>Score: {score}</Score>
-          </Header>
-          <GameBoard onScoreChange={handleScoreChange} />
-        </Container>
-      </StyledSafeAreaView>
+      <StyledGestureHandlerRootView>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="Loading"
+            screenOptions={{ headerShown: false }}
+          >
+            <Stack.Screen name="Loading" component={LoadingScreen} />
+            <Stack.Screen name="Main" component={MainScreen} />
+            <Stack.Screen name="Game" component={PlayGameScreen} />
+            {/* <Stack.Screen name="Avatar" component={AvatarScreen} /> */}
+            {/* <Stack.Screen name="Settings" component={SettingsScreen} /> */}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </StyledGestureHandlerRootView>
     </SafeAreaProvider>
   )
 }
+
+export default App
