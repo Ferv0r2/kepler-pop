@@ -23,7 +23,6 @@ const TileContainer = styled(View)<{ size: number; color: string }>`
   background-color: ${(props) => props.color};
   justify-content: center;
   align-items: center;
-  opacity: ${(props) => (props.color === 'transparent' ? 0 : 1)};
 `
 
 export function Tile({ type, size }: TileProps) {

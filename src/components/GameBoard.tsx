@@ -52,16 +52,21 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
   const [isProcessing, setIsProcessing] = useState(false)
 
   /**
-   * 각 (y,x) 위치의 타일을 "어디에 그려야 하는지"를
-   * Animated.ValueXY로 관리 (translateX, translateY)
+   * 각 (y,x) 위치 타일의 "현재 translateX, translateY"를
+   * Animated.ValueXY로 관리
    */
   const positionsRef = useRef<Animated.ValueXY[][]>([])
+
+  /**
+   * 각 타일의 투명도를 관리하기 위한 Animated.Value (기본 1)
+   */
+  const opacityRef = useRef<Animated.Value[][]>([])
 
   useEffect(() => {
     initializeBoard()
   }, [])
 
-  // 보드 및 Animated.ValueXY 초기 설정
+  // 보드 및 Animated.Value 초기 설정
   const initializeBoard = () => {
     let newBoard: TileType[][]
     let matches: number[][]
@@ -76,20 +81,26 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
         })),
       )
       matches = checkMatches(newBoard)
-    } while (matches.length > 0)
+    } while (matches.length > 0) // 매칭 없이 시작
 
-    // positionsRef 세팅
+    // positionsRef, opacityRef 세팅
     const newPositions: Animated.ValueXY[][] = []
+    const newOpacities: Animated.Value[][] = []
+
     for (let y = 0; y < BOARD_SIZE; y++) {
       newPositions[y] = []
+      newOpacities[y] = []
       for (let x = 0; x < BOARD_SIZE; x++) {
         newPositions[y][x] = new Animated.ValueXY({
           x: x * TILE_SIZE,
           y: y * TILE_SIZE,
         })
+        newOpacities[y][x] = new Animated.Value(1) // 기본 투명도 1
       }
     }
+
     positionsRef.current = newPositions
+    opacityRef.current = newOpacities
 
     setBoard(newBoard)
   }
@@ -160,7 +171,6 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
     swapTiles(newBoard, { x, y }, { x: targetX, y: targetY })
 
     // 두 타일이 서로 자리로 교차 이동
-    // (A -> B 자리), (B -> A 자리)
     const animA = Animated.timing(APos, {
       toValue: { x: Bx, y: By },
       duration: 200,
@@ -216,6 +226,9 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
     setBoard(boardBase)
   }
 
+  /**
+   * 매칭된 타일을 서서히 투명화 후 제거 → 드롭 → 새 타일 생성
+   */
   const processMatches = async (
     boardBase: TileType[][],
     matches: number[][],
@@ -225,7 +238,26 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
 
     onScoreChange(uniqueTiles.size * 100)
 
-    // 매칭된 타일 -1
+    // 1) 매칭된 타일들을 서서히 투명화 (opacity: 1 → 0)
+    const fadeOutAnimations: Animated.CompositeAnimation[] = []
+    uniqueTiles.forEach((idx) => {
+      const yy = Math.floor(idx / BOARD_SIZE)
+      const xx = idx % BOARD_SIZE
+
+      const tileOpacity = opacityRef.current[yy][xx]
+      const anim = Animated.timing(tileOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      })
+      fadeOutAnimations.push(anim)
+    })
+
+    await new Promise<void>((resolve) =>
+      Animated.parallel(fadeOutAnimations).start(() => resolve()),
+    )
+
+    // 2) 실제 board 데이터에서 type을 -1로 변경 (사라진 타일)
     uniqueTiles.forEach((idx) => {
       const yy = Math.floor(idx / BOARD_SIZE)
       const xx = idx % BOARD_SIZE
@@ -233,40 +265,119 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
     })
     setBoard([...boardBase])
 
-    await delay(200)
-    dropTiles(boardBase)
-    setBoard([...boardBase])
+    // 투명도는 다시 1로 돌려놓기(재활용 가능)
+    uniqueTiles.forEach((idx) => {
+      const yy = Math.floor(idx / BOARD_SIZE)
+      const xx = idx % BOARD_SIZE
+      opacityRef.current[yy][xx].setValue(1)
+    })
 
-    await delay(200)
-    generateNewTiles(boardBase)
-    setBoard([...boardBase])
+    // 3) 타일 드롭
+    await animateDrop(boardBase)
 
-    // 연속 매칭 검사
+    // 4) 새 타일 생성
+    await animateNewTiles(boardBase)
+
+    // 연쇄 매칭 (체인 반응)
     const newMatches = checkMatches(boardBase)
     if (newMatches.length > 0) {
       await processMatches(boardBase, newMatches)
     }
   }
 
-  const delay = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms))
+  /**
+   * 타일 드롭:
+   *  - dropTiles()로 실제 (x,y)값 재배치
+   *  - positionsRef 애니메이션으로 부드럽게 이동
+   */
+  const animateDrop = async (boardBase: TileType[][]) => {
+    dropTiles(boardBase)
+    setBoard([...boardBase])
+
+    const dropAnimations: Animated.CompositeAnimation[] = []
+    for (let y = 0; y < BOARD_SIZE; y++) {
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        const tile = boardBase[y][x]
+        if (tile.type !== -1) {
+          const pos = positionsRef.current[y][x]
+          const newX = x * TILE_SIZE
+          const newY = y * TILE_SIZE
+
+          const anim = Animated.timing(pos, {
+            toValue: { x: newX, y: newY },
+            duration: 300,
+            useNativeDriver: false,
+          })
+          dropAnimations.push(anim)
+        }
+      }
+    }
+
+    await new Promise<void>((resolve) =>
+      Animated.parallel(dropAnimations).start(() => resolve()),
+    )
+  }
+
+  /**
+   * 새 타일 생성:
+   *  - 실제 board 데이터에서 type=-1 칸에 새 타입 할당
+   *  - positionsRef는 y=-TILE_SIZE(보드 위쪽)에서 시작 -> 제자리까지 떨어지도록
+   */
+  const animateNewTiles = async (boardBase: TileType[][]) => {
+    const newAnimations: Animated.CompositeAnimation[] = []
+
+    // generateNewTiles() 대신, 여기서 직접 위치 셋팅 & 애니메이션 처리해도 됨
+    generateNewTiles(boardBase)
+    setBoard([...boardBase])
+
+    for (let y = 0; y < BOARD_SIZE; y++) {
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        const tile = boardBase[y][x]
+        if (tile.type !== -1) {
+          // 만약 방금 새로 생긴 타일이면?
+          // (type이 -1이었다가 새로 할당된 상태를 추적하기 위해서는
+          //  별도 플래그를 두거나, 혹은 이전 단계와 비교하는 로직이 필요할 수 있음)
+          // 여기서는 간단히 "위에서 내려온다"는 연출을 위해 '이 자리에 있는 타일이 -1이었을 수 있다'고 가정
+
+          const pos = positionsRef.current[y][x]
+
+          // 혹시 아직 y 값이 위(=-TILE_SIZE)에 있다면 → y*TILE_SIZE로 이동
+          // (boardBase가 새로 업데이트되면서 실제 y 좌표는 y*TILE_SIZE가 되어야 함)
+          if ((pos.y as Animated.Value & { _value: number })._value < 0) {
+            // 타일을 Animated.timing으로 내려오게
+            const anim = Animated.timing(pos, {
+              toValue: { x: x * TILE_SIZE, y: y * TILE_SIZE },
+              duration: 300,
+              useNativeDriver: false,
+            })
+            newAnimations.push(anim)
+          }
+        }
+      }
+    }
+
+    await new Promise<void>((resolve) =>
+      Animated.parallel(newAnimations).start(() => resolve()),
+    )
+  }
 
   return (
     <BoardContainer>
       <BoardWrapper>
         {board.map((row) =>
           row.map((tile) => {
-            const { x, y } = tile
-            // 각 타일의 Animated.ValueXY
+            const { x, y, id, type } = tile
+
             const tileAnimStyle = {
               transform: [
                 { translateX: positionsRef.current[y][x].x },
                 { translateY: positionsRef.current[y][x].y },
               ],
+              opacity: opacityRef.current[y][x],
             }
 
             return (
-              <AnimatedTileContainer key={tile.id} style={tileAnimStyle}>
+              <AnimatedTileContainer key={id} style={tileAnimStyle}>
                 <GestureRecognizerContainer
                   onSwipe={(dir) => handleSwipe(dir, x, y)}
                   config={{
@@ -274,7 +385,7 @@ export const GameBoard = ({ onScoreChange }: GameBoardProps) => {
                     directionalOffsetThreshold: 80,
                   }}
                 >
-                  <Tile type={tile.type} size={TILE_SIZE} />
+                  <Tile type={type} size={TILE_SIZE} />
                 </GestureRecognizerContainer>
               </AnimatedTileContainer>
             )
