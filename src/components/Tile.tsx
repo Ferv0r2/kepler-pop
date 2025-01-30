@@ -1,31 +1,65 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { Text } from 'react-native'
 import styled from 'styled-components/native'
-import { View } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated'
 
-const COLORS = [
-  '#FF6B6B', // 빨강
-  '#4ECDC4', // 청록
-  '#45B7D1', // 하늘
-  '#96CEB4', // 연두
-  '#FFEEAD', // 노랑
-]
-
-type TileProps = {
-  type: number
-  size: number
+interface TileProps {
+  value: number
+  onPress: () => void
+  x: number
+  y: number
+  isMatched: boolean
 }
 
-const TileContainer = styled(View)<{ size: number; color: string }>`
-  width: ${(props) => props.size}px;
-  height: ${(props) => props.size}px;
-  margin: 1px;
-  border-radius: 8px;
-  background-color: ${(props) => props.color};
-  justify-content: center;
-  align-items: center;
+const AnimatedTouchable = Animated.createAnimatedComponent(
+  styled.TouchableOpacity`
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    background-color: #ffcc00;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  `,
+)
+
+export const Tile = ({ value, onPress, x, y, isMatched }: TileProps) => {
+  const offsetX = useSharedValue(x)
+  const offsetY = useSharedValue(y)
+  const opacity = useSharedValue(1)
+
+  useEffect(() => {
+    offsetX.value = withSpring(x)
+    offsetY.value = withSpring(y)
+  }, [offsetX, offsetY, x, y])
+
+  useEffect(() => {
+    if (isMatched) {
+      opacity.value = withTiming(0, { duration: 300 })
+    } else {
+      opacity.value = withTiming(1)
+    }
+  }, [isMatched, opacity])
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: offsetX.value }, { translateY: offsetY.value }],
+    opacity: opacity.value,
+  }))
+
+  return (
+    <AnimatedTouchable style={animatedStyle} onPress={onPress}>
+      <TileText>{value}</TileText>
+    </AnimatedTouchable>
+  )
+}
+
+const TileText = styled(Text)`
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
 `
-
-export function Tile({ type, size }: TileProps) {
-  const color = type === -1 ? 'transparent' : COLORS[type]
-  return <TileContainer size={size} color={color} />
-}
