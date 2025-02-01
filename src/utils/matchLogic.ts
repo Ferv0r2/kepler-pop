@@ -1,4 +1,22 @@
-import { BOARD_SIZE, TILE_TYPES } from '@/constants/basicConfig'
+import {
+  ANIMATION_DURATION,
+  BOARD_SIZE,
+  TILE_TYPES,
+} from '@/constants/basicConfig'
+
+// 초기 매칭 없이 보드를 생성 (논리 좌표: row 0은 바닥)
+export const generateBoard = (): number[][] => {
+  let board: number[][] = []
+  do {
+    board = Array.from({ length: BOARD_SIZE }, () =>
+      Array.from(
+        { length: BOARD_SIZE },
+        () => Math.floor(Math.random() * 4) + 1,
+      ),
+    )
+  } while (checkMatches(board).some((row) => row.includes(true)))
+  return board
+}
 
 // 매칭 확인 함수
 export const checkMatches = (grid: number[][]): boolean[][] => {
@@ -69,15 +87,95 @@ export const removeAndFillTiles = (grid: number[][]): number[][] => {
 
   return newGrid
 }
-export const processCascade = (grid: number[][]): number[][] => {
-  let newGrid = [...grid]
 
-  while (true) {
-    const matches = checkMatches(newGrid)
-    if (!matches.some((row) => row.includes(true))) break // 더 이상 매칭이 없으면 중단
+// 매칭된 타일을 제거하고 중력 효과 및 새 블럭 생성 처리
+export const processCascade = (
+  grid: number[][],
+): { grid: number[][]; newCells: boolean[][] } => {
+  // 논리 좌표: row 0 = 바닥, row BOARD_SIZE-1 = 최상단
+  const newGrid = grid.map((row) => [...row])
+  const newCells = Array.from({ length: BOARD_SIZE }, () =>
+    Array(BOARD_SIZE).fill(false),
+  )
 
-    newGrid = removeAndFillTiles(newGrid) // 매칭된 타일 제거 후 새로운 타일 추가
+  // 1. 매칭된 타일 제거 (0으로 표시)
+  const matches = checkMatches(newGrid)
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < newGrid[r].length; c++) {
+      if (matches[r][c]) {
+        newGrid[r][c] = 0
+      }
+    }
   }
 
-  return newGrid
+  // 2. 중력 효과 적용: 각 열에서, 바닥(row=0)부터 위로 진행하면서 빈 칸(0)이 있으면 위에 있는 블럭을 내려보내기
+  for (let c = 0; c < newGrid[0].length; c++) {
+    let emptyCount = 0
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      if (newGrid[r][c] === 0) {
+        emptyCount++
+      } else if (emptyCount > 0) {
+        newGrid[r - emptyCount][c] = newGrid[r][c]
+        newGrid[r][c] = 0
+      }
+    }
+    // 3. 최상단의 빈 칸에 새 블럭 생성 (그리고 새 블럭임을 표시)
+    for (let r = BOARD_SIZE - emptyCount; r < BOARD_SIZE; r++) {
+      newGrid[r][c] = Math.floor(Math.random() * TILE_TYPES) + 1
+      newCells[r][c] = true
+    }
+  }
+
+  return { grid: newGrid, newCells }
+}
+
+// 비동기 처리되어 딜레이 후 매칭된 타일을 제거
+export const cascadeOnce = async (
+  grid: number[][],
+): Promise<{
+  grid: number[][]
+  newCells: boolean[][]
+  hasMatch: boolean
+}> => {
+  const newGrid = grid.map((row) => [...row])
+  const newCells = Array.from({ length: BOARD_SIZE }, () =>
+    Array(BOARD_SIZE).fill(false),
+  )
+
+  const matches = checkMatches(newGrid)
+  const hasMatch = matches.some((row) => row.includes(true))
+  if (!hasMatch) {
+    return { grid: newGrid, newCells, hasMatch: false }
+  }
+
+  // 딜레이로 매칭 애니메이션 완료 대기
+  await new Promise((resolve) => setTimeout(resolve, ANIMATION_DURATION))
+
+  // 매칭된 타일 제거 (0으로 처리)
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (matches[r][c]) {
+        newGrid[r][c] = 0
+      }
+    }
+  }
+
+  // 중력 적용 및 새 블럭 생성 (새 블럭은 newCells로 표시)
+  for (let c = 0; c < newGrid[0].length; c++) {
+    let emptyCount = 0
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      if (newGrid[r][c] === 0) {
+        emptyCount++
+      } else if (emptyCount > 0) {
+        newGrid[r - emptyCount][c] = newGrid[r][c]
+        newGrid[r][c] = 0
+      }
+    }
+    for (let r = BOARD_SIZE - emptyCount; r < BOARD_SIZE; r++) {
+      newGrid[r][c] = Math.floor(Math.random() * TILE_TYPES) + 1
+      newCells[r][c] = true
+    }
+  }
+
+  return { grid: newGrid, newCells, hasMatch: true }
 }
