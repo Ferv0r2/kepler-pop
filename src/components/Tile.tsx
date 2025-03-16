@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import { Text } from 'react-native'
 import styled from 'styled-components/native'
 import Animated, {
   useSharedValue,
@@ -16,12 +15,17 @@ interface TileProps {
   // isNew: boolean
 }
 
+const getTileColor = (value: number) => {
+  const colors = ['#F4A7B9', '#F4D06F', '#A1C6EA', '#B8E0D2']
+  return colors[value - 1] || '#ffcc00'
+}
+
 const AnimatedTouchable = Animated.createAnimatedComponent(
-  styled.TouchableOpacity`
+  styled.TouchableOpacity<{ backgroundColor: string }>`
     width: 60px;
     height: 60px;
     position: absolute;
-    background-color: #ffcc00;
+    background-color: ${({ backgroundColor }) => backgroundColor};
     align-items: center;
     justify-content: center;
     border-radius: 10px;
@@ -43,14 +47,10 @@ export const Tile = ({ value, onPress, x, y }: TileProps) => {
   }))
 
   return (
-    <AnimatedTouchable style={animatedStyle} onPress={onPress}>
-      <TileText>{value}</TileText>
-    </AnimatedTouchable>
+    <AnimatedTouchable
+      style={animatedStyle}
+      backgroundColor={getTileColor(value)}
+      onPress={onPress}
+    />
   )
 }
-
-const TileText = styled(Text)`
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
-`
