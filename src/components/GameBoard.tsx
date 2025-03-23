@@ -43,24 +43,28 @@ export const GameBoard = () => {
     }
 
     const { row: prevRow, col: prevCol } = selectedTile
-    // 인접한 타일만 허용
-    if (Math.abs(prevRow - row) + Math.abs(prevCol - col) === 1) {
-      // 타일 스왑 처리 및 매치 여부 확인 (점수 애니메이션 콜백 전달)
-      const isMatched = handleTileSwap(
-        prevRow,
-        prevCol,
-        row,
-        col,
-        triggerScoreAnimation,
-      )
 
-      // 매치 실패시에만 이동 애니메이션 적용
-      if (!isMatched) {
-        movesAnimation.value = withSpring(1.3, {}, () => {
-          movesAnimation.value = withTiming(1)
-        })
-      }
+    if (Math.abs(prevRow - row) + Math.abs(prevCol - col) !== 1) {
+      setSelectedTile(null)
+      return
     }
+
+    // 타일 스왑 처리 및 매치 여부 확인
+    const isMatched = handleTileSwap(
+      prevRow,
+      prevCol,
+      row,
+      col,
+      triggerScoreAnimation,
+    )
+
+    // 매치 실패시에만 이동 애니메이션 적용
+    if (!isMatched) {
+      movesAnimation.value = withSpring(1.3, {}, () => {
+        movesAnimation.value = withTiming(1)
+      })
+    }
+
     setSelectedTile(null)
   }
 
