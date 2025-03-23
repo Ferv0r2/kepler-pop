@@ -21,34 +21,55 @@ export const GameBoard = () => {
   const { gameState, handleTileSwap } = useGameLogic()
   const { score, moves, isAnimating } = gameState
   const scoreAnimation = useSharedValue(1)
+  const movesAnimation = useSharedValue(1)
 
   const [selectedTile, setSelectedTile] = useState<{
     row: number
     col: number
   } | null>(null)
 
+  const triggerScoreAnimation = () => {
+    scoreAnimation.value = withSpring(1.3, {}, () => {
+      scoreAnimation.value = withTiming(1)
+    })
+  }
+
   const handleTilePress = (row: number, col: number) => {
     if (isAnimating) return
 
     if (!selectedTile) {
       setSelectedTile({ row, col })
-    } else {
-      const { row: prevRow, col: prevCol } = selectedTile
-      // 인접한 타일만 허용
-      if (Math.abs(prevRow - row) + Math.abs(prevCol - col) === 1) {
-        handleTileSwap(prevRow, prevCol, row, col)
+      return
+    }
 
-        // 성공적인 매치 시 점수 애니메이션
-        scoreAnimation.value = withSpring(1.3, {}, () => {
-          scoreAnimation.value = withTiming(1)
+    const { row: prevRow, col: prevCol } = selectedTile
+    // 인접한 타일만 허용
+    if (Math.abs(prevRow - row) + Math.abs(prevCol - col) === 1) {
+      // 타일 스왑 처리 및 매치 여부 확인 (점수 애니메이션 콜백 전달)
+      const isMatched = handleTileSwap(
+        prevRow,
+        prevCol,
+        row,
+        col,
+        triggerScoreAnimation,
+      )
+
+      // 매치 실패시에만 이동 애니메이션 적용
+      if (!isMatched) {
+        movesAnimation.value = withSpring(1.3, {}, () => {
+          movesAnimation.value = withTiming(1)
         })
       }
-      setSelectedTile(null)
     }
+    setSelectedTile(null)
   }
 
   const scoreAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scoreAnimation.value }],
+  }))
+
+  const movesAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: movesAnimation.value }],
   }))
 
   return (
@@ -65,7 +86,9 @@ export const GameBoard = () => {
 
         <MovesWrapper>
           <MovesLabel>이동</MovesLabel>
-          <MovesText>{moves}</MovesText>
+          <Animated.View style={movesAnimStyle}>
+            <MovesText>{moves}</MovesText>
+          </Animated.View>
         </MovesWrapper>
       </InfoPanel>
 

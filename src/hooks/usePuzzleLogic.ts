@@ -158,7 +158,11 @@ export const useGameLogic = () => {
   }, [])
 
   const handleCascadeMatches = useCallback(
-    (grid: Grid, matches: { row: number; col: number }[]) => {
+    (
+      grid: Grid,
+      matches: { row: number; col: number }[],
+      onScoreChange?: () => void,
+    ) => {
       setGameState((prev) => ({
         ...prev,
         isAnimating: true,
@@ -171,6 +175,11 @@ export const useGameLogic = () => {
           grid,
           matches,
         )
+
+        // 점수 변경 시 콜백 실행 (애니메이션 트리거)
+        if (onScoreChange) {
+          onScoreChange()
+        }
 
         setGameState((prev) => ({
           ...prev,
@@ -195,7 +204,12 @@ export const useGameLogic = () => {
           // 매치 확인 전에 애니메이션 완료를 위한 시간 확보
           setTimeout(() => {
             if (newCascadeMatches.length > 0) {
-              handleCascadeMatches(gridAfterDrop, newCascadeMatches)
+              // 연쇄 매칭 시에도 점수 애니메이션 콜백 전달
+              handleCascadeMatches(
+                gridAfterDrop,
+                newCascadeMatches,
+                onScoreChange,
+              )
             } else {
               setGameState((prev) => ({
                 ...prev,
@@ -205,15 +219,21 @@ export const useGameLogic = () => {
               }))
             }
           }, ANIMATION_TIMING.cascade.newMatchCheck)
-        }, ANIMATION_TIMING.cascade.dropDelay) // 드롭 애니메이션을 위한 시간 증가
-      }, ANIMATION_TIMING.cascade.matchDisplay) // 매칭 애니메이션을 위한 시간 증가
+        }, ANIMATION_TIMING.cascade.dropDelay)
+      }, ANIMATION_TIMING.cascade.matchDisplay)
     },
     [checkMatches, removeMatches, dropTiles],
   )
 
   const handleTileSwap = useCallback(
-    (row1: number, col1: number, row2: number, col2: number) => {
-      if (gameState.isAnimating) return
+    (
+      row1: number,
+      col1: number,
+      row2: number,
+      col2: number,
+      onScoreChange?: () => void,
+    ) => {
+      if (gameState.isAnimating) return false
 
       setGameState((prev) => ({ ...prev, isAnimating: true }))
 
@@ -224,56 +244,66 @@ export const useGameLogic = () => {
 
       const matches = checkMatches(newGrid)
 
-      if (matches.length > 0) {
+      if (matches.length === 0) {
+        // 매치 실패
         setGameState((prev) => ({
           ...prev,
-          grid: newGrid,
-          matchedTiles: matches,
+          grid: gameState.grid,
+          moves: prev.moves - 1,
+          isAnimating: false,
+        }))
+
+        return false
+      }
+
+      // 매치 성공
+      setGameState((prev) => ({
+        ...prev,
+        grid: newGrid,
+        matchedTiles: matches,
+      }))
+
+      // 첫 매치의 점수 변경 시 콜백 실행
+      if (onScoreChange) {
+        onScoreChange()
+      }
+
+      setTimeout(() => {
+        const { newGrid: gridAfterRemoval, scoreGain } = removeMatches(
+          newGrid,
+          matches,
+        )
+
+        setGameState((prev) => ({
+          ...prev,
+          grid: gridAfterRemoval,
+          score: prev.score + scoreGain,
         }))
 
         setTimeout(() => {
-          const { newGrid: gridAfterRemoval, scoreGain } = removeMatches(
-            newGrid,
-            matches,
-          )
+          const { newGrid: gridAfterDrop, newTiles } =
+            dropTiles(gridAfterRemoval)
 
           setGameState((prev) => ({
             ...prev,
-            grid: gridAfterRemoval,
-            score: prev.score + scoreGain,
+            grid: gridAfterDrop,
+            matchedTiles: [],
+            newTiles,
           }))
 
-          setTimeout(() => {
-            const { newGrid: gridAfterDrop, newTiles } =
-              dropTiles(gridAfterRemoval)
-
-            setGameState((prev) => ({
-              ...prev,
-              grid: gridAfterDrop,
-              matchedTiles: [],
-              newTiles,
-            }))
-
-            const cascadeMatches = checkMatches(gridAfterDrop)
-            if (cascadeMatches.length > 0) {
-              setTimeout(() => {
-                handleCascadeMatches(gridAfterDrop, cascadeMatches)
-              }, ANIMATION_TIMING.cascade.newMatchCheck)
-            } else {
-              setGameState((prev) => ({ ...prev, isAnimating: false }))
-            }
-          }, ANIMATION_TIMING.swap.duration)
-        }, ANIMATION_TIMING.match.duration)
-      } else {
-        setTimeout(() => {
-          setGameState((prev) => ({
-            ...prev,
-            grid: gameState.grid,
-            moves: prev.moves - 1,
-            isAnimating: false,
-          }))
+          const cascadeMatches = checkMatches(gridAfterDrop)
+          if (cascadeMatches.length > 0) {
+            setTimeout(() => {
+              // 연쇄 매칭에도 점수 애니메이션 콜백 전달
+              handleCascadeMatches(gridAfterDrop, cascadeMatches, onScoreChange)
+            }, ANIMATION_TIMING.cascade.newMatchCheck)
+          } else {
+            setGameState((prev) => ({ ...prev, isAnimating: false }))
+          }
         }, ANIMATION_TIMING.swap.duration)
-      }
+      }, ANIMATION_TIMING.match.duration)
+
+      return true
     },
     [gameState, checkMatches, removeMatches, dropTiles, handleCascadeMatches],
   )
