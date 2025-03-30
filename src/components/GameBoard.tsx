@@ -99,20 +99,32 @@ export const GameBoard = () => {
       <BoardContainer boardSize={calculatedBoardSize}>
         {gameState.grid.map((row, rowIndex) =>
           row.map((value, colIndex) => {
-            // 타일의 상태 확인
+            // 값이 0인 경우 빈 셀
+            if (value === 0) {
+              return null
+            }
+
+            // 타일 상태 확인
             const isMatched =
               gameState.matchedTiles?.some(
                 (tile) => tile.row === rowIndex && tile.col === colIndex,
               ) || false
 
-            const isNew =
-              gameState.newTiles?.some(
-                (tile) => tile.row === rowIndex && tile.col === colIndex,
-              ) || false
+            // 새 타일과 드롭된 타일 확인
+            const newTile = gameState.newTiles?.find(
+              (tile) => tile.row === rowIndex && tile.col === colIndex,
+            )
 
-            // 주요 변경: 값이 0이면 타일을 렌더링하지 않음
-            if (value === 0) {
-              return null // 빈 공간은 렌더링하지 않음
+            const droppedTile = gameState.droppedTiles?.find(
+              (tile) => tile.row === rowIndex && tile.col === colIndex,
+            )
+
+            // 시작 위치 계산
+            let fromY
+            if (newTile?.fromRow !== undefined) {
+              fromY = newTile.fromRow * calculatedTileSize
+            } else if (droppedTile?.fromRow !== undefined) {
+              fromY = droppedTile.fromRow * calculatedTileSize
             }
 
             return (
@@ -123,7 +135,9 @@ export const GameBoard = () => {
                 x={colIndex * calculatedTileSize}
                 y={rowIndex * calculatedTileSize}
                 isMatched={isMatched}
-                isNew={isNew}
+                isNew={!!newTile}
+                isDropped={!!droppedTile}
+                fromY={fromY}
               />
             )
           }),

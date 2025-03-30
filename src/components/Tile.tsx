@@ -25,6 +25,8 @@ interface TileProps {
   y: number
   isMatched?: boolean
   isNew?: boolean
+  isDropped?: boolean
+  fromY?: number // 드롭 시작 위치
 }
 
 const getTileColor = (value: number) => {
@@ -61,9 +63,11 @@ export const Tile: React.FC<TileProps> = ({
   y,
   isMatched = false,
   isNew = false,
+  isDropped = false,
+  fromY,
 }) => {
   const offsetX = useSharedValue(x)
-  const offsetY = useSharedValue(y)
+  const offsetY = useSharedValue(isDropped && fromY !== undefined ? fromY : y)
   const scale = useSharedValue(isNew ? 0 : 1)
   const rotate = useSharedValue('0deg')
   const opacity = useSharedValue(1)
@@ -72,40 +76,74 @@ export const Tile: React.FC<TileProps> = ({
   // 위치 변경 시 애니메이션
   useEffect(() => {
     offsetX.value = withSpring(x, ANIMATION_SPRING_CONFIG)
-    offsetY.value = withSpring(y, ANIMATION_SPRING_CONFIG)
-  }, [x, y, offsetX, offsetY])
 
-  // 매치되거나 새 타일일 때 효과
+    // 드롭 애니메이션
+    if (isDropped && fromY !== undefined) {
+      // 초기 위치 설정
+      offsetY.value = fromY
+
+      // 약간의 지연 후에 드롭 애니메이션 시작 (새 타일일수록 더 지연)
+      setTimeout(
+        () => {
+          // 새 타일은 더 빠르게 떨어지고, 바운스 효과 강화
+          const config = isNew
+            ? {
+                damping: 12,
+                stiffness: 140,
+                mass: 1.1,
+                overshootClamping: false,
+              }
+            : ANIMATION_TIMING.dropTileBounce
+
+          offsetY.value = withSpring(y, config)
+        },
+        isNew ? 100 + Math.abs(fromY) / 5 : 50 + Math.abs(y - fromY) / 10,
+      )
+    } else {
+      offsetY.value = withSpring(y, ANIMATION_SPRING_CONFIG)
+    }
+  }, [x, y, offsetX, offsetY, isDropped, isNew, fromY])
+
+  // 매치된 타일과 새 타일 효과
   useEffect(() => {
     if (isMatched) {
-      // 매치된 타일 효과 - 한 번만 실행되도록 수정
+      // 매치된 타일 효과 - 반짝이고 스케일 변화 (하지만 완전히 사라지지 않도록)
       scale.value = withSequence(
         withTiming(1.2, { duration: ANIMATION_TIMING.tile.grow }),
         withTiming(0.8, { duration: ANIMATION_TIMING.tile.shrink }),
-        withTiming(1, { duration: ANIMATION_TIMING.tile.restore }),
+        withTiming(1, { duration: ANIMATION_TIMING.tile.restore }), // 다시 1로 설정
       )
 
-      // 한 번만 반짝이도록 수정
       shimmer.value = withSequence(
         withTiming(0.8, { duration: ANIMATION_TIMING.shimmer.on }),
         withTiming(0, { duration: ANIMATION_TIMING.shimmer.off }),
       )
     } else if (isNew) {
-      // 새 타일 생성 효과
-      scale.value = withTiming(1, { duration: ANIMATION_TIMING.tile.appear })
-      opacity.value = withTiming(1, { duration: ANIMATION_TIMING.tile.appear })
+      // 새 타일 효과
+      scale.value = 0.7 // 약간 작은 크기로 시작
+      opacity.value = 1
+
+      // 약간 지연 후 정상 크기로
+      setTimeout(() => {
+        scale.value = withTiming(1, { duration: ANIMATION_TIMING.tile.appear })
+      }, 100)
+    } else if (isDropped) {
+      // 떨어지는 타일은 크기 변화 없음
+      scale.value = 1
+      opacity.value = 1
     } else {
-      // 기본 상태로 복원
+      // 기본 상태
       scale.value = withTiming(1, { duration: ANIMATION_TIMING.tile.disappear })
-      rotate.value = withTiming('0deg', {
-        duration: ANIMATION_TIMING.tile.press,
-      })
       opacity.value = withTiming(1, {
         duration: ANIMATION_TIMING.tile.disappear,
       })
+      rotate.value = withTiming('0deg', {
+        duration: ANIMATION_TIMING.tile.press,
+      })
       shimmer.value = withTiming(0, { duration: ANIMATION_TIMING.tile.press })
     }
-  }, [isMatched, isNew, opacity, rotate, scale, shimmer])
+  }, [isMatched, isNew, isDropped, scale, opacity, rotate, shimmer])
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: offsetX.value },
@@ -115,7 +153,7 @@ export const Tile: React.FC<TileProps> = ({
     ],
     opacity: opacity.value,
     backgroundColor: getTileColor(value),
-    zIndex: isMatched ? 10 : isNew ? 5 : 1,
+    zIndex: isMatched ? 10 : isDropped ? 8 : isNew ? 5 : 1,
   }))
 
   const shimmerStyle = useAnimatedStyle(() => {
