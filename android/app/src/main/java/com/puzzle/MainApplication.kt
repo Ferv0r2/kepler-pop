@@ -1,4 +1,4 @@
-package com.puzzle
+package com.keplerpop
 
 import android.app.Application
 import com.facebook.react.PackageList
