@@ -15,7 +15,7 @@ Built using React Native and TypeScript, Kepler Pop is designed for Android devi
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React Native with TypeScript
+- **Frontend**: React Native & Webview with TypeScript
 - **State Management**: Context API
 - **Backend**: Firebase (planned for leaderboard and user data)
 - **Design**: Minimalistic UI with vibrant cosmic themes
@@ -23,10 +23,6 @@ Built using React Native and TypeScript, Kepler Pop is designed for Android devi
 ## 🤝 Contributions
 
 Contributions are welcome! Please fork this repository and submit a pull request for any enhancements or bug fixes.
-
-## 📜 License
-
-This project is licensed under the MIT License.
 
 ## 🌟 Acknowledgments
 
