@@ -6,4 +6,4 @@ module.exports = {
     'prettier/prettier': 'error',
     '@typescript-eslint/no-shadow': 'off',
   },
-}
+};
