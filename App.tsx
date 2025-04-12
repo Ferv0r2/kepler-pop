@@ -1,6 +1,6 @@
 import { handlerMap, MessageData, sendEventToWeb } from './native/native-bridge';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { BackHandler, Platform } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 const ENDPOINT = 'https://kepler-pop.wontae.net';
@@ -10,10 +10,14 @@ const App = () => {
   const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === 'android') {
+    const handleBackButton = () => {
       sendEventToWeb(webviewRef, 'NAVIGATE_STATE', {
         canGoBack,
       });
+      return true;
+    };
+    if (Platform.OS === 'android') {
+      BackHandler.addEventListener('hardwareBackPress', handleBackButton);
     }
   }, [canGoBack]);
 
