@@ -5,12 +5,14 @@ import { ReceiveFromWebviewActionType } from './action-type';
 
 type WebviewMessageHandler = (data: any) => void;
 
-interface MessageData {
+export interface MessageData {
   type: ReceiveFromWebviewActionType;
   [key: string]: any;
 }
 
-const handlerMap: Record<ReceiveFromWebviewActionType, WebviewMessageHandler> = {
+let webviewRef: RefObject<WebView> | null = null;
+
+export const handlerMap: Record<ReceiveFromWebviewActionType, WebviewMessageHandler> = {
   BACK_ACTION: () => {
     webviewRef?.current?.goBack();
   },
@@ -19,18 +21,15 @@ const handlerMap: Record<ReceiveFromWebviewActionType, WebviewMessageHandler> = 
   },
 };
 
-let webviewRef: RefObject<WebView> | null = null;
-
 export const handleWebviewMessage = (event: WebViewMessageEvent, _webviewRef: RefObject<WebView>) => {
   webviewRef = _webviewRef;
   try {
     const data: MessageData = JSON.parse(event.nativeEvent.data);
     const handler = handlerMap[data.type];
-    if (handler) {
-      handler(data);
-    } else {
-      console.warn('Unknown action type:', data.type);
+    if (!handler) {
+      throw new Error(`Unknown action type: ${data.type}`);
     }
+    handler(data);
   } catch (e) {
     console.error('Failed to parse webview message', e);
   }
