@@ -1,17 +1,19 @@
-import { handlerMap, MessageData, sendEventToWeb } from './native/native-bridge';
+import { useWebviewBridge } from './native/native-bridge';
+import { NativeToWebMessageType } from './native/action-type';
 import React, { useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform } from 'react-native';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { WebView } from 'react-native-webview';
 
 const ENDPOINT = 'https://kepler-pop.wontae.net';
 
 const App = () => {
-  const webviewRef = useRef(null);
+  const webviewRef = useRef<WebView | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
+  const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
 
   useEffect(() => {
     const handleBackButton = () => {
-      sendEventToWeb(webviewRef, 'NAVIGATE_STATE', {
+      sendEventToWeb(NativeToWebMessageType.CAN_BACK_STATE, {
         canGoBack,
       });
       return true;
@@ -19,20 +21,7 @@ const App = () => {
     if (Platform.OS === 'android') {
       BackHandler.addEventListener('hardwareBackPress', handleBackButton);
     }
-  }, [canGoBack]);
-
-  const handleWebviewMessage = (event: WebViewMessageEvent) => {
-    try {
-      const data: MessageData = JSON.parse(event.nativeEvent.data);
-      const handler = handlerMap[data.type];
-      if (!handler) {
-        throw new Error(`Unknown action type: ${data.type}`);
-      }
-      handler(data);
-    } catch (e) {
-      console.error('Failed to parse webview message', e);
-    }
-  };
+  }, [canGoBack, sendEventToWeb]);
 
   return (
     <WebView

@@ -1,46 +1,80 @@
-import { RefObject } from 'react';
+import { RefObject, useCallback } from 'react';
 import { BackHandler } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
-import { ReceiveFromWebviewActionType } from './action-type';
+import {
+  WebToNativeMessage,
+  WebToNativeMessageType,
+  NativeToWebMessage,
+  NativeToWebMessageType,
+  WebAppReadyPayload,
+  UpdateEnergyPayload,
+  ShowAdPayload,
+  MakePurchasePayload,
+} from './action-type';
 
-type WebviewMessageHandler = (data: any) => void;
+type WebviewMessageHandler = (message: WebToNativeMessage) => void;
 
-export interface MessageData {
-  type: ReceiveFromWebviewActionType;
-  [key: string]: any;
-}
-
-let webviewRef: RefObject<WebView> | null = null;
-
-export const handlerMap: Record<ReceiveFromWebviewActionType, WebviewMessageHandler> = {
-  BACK_ACTION: () => {
+const createHandlerMap = (
+  webviewRef: RefObject<WebView | null>,
+): Record<WebToNativeMessageType, WebviewMessageHandler> => ({
+  [WebToNativeMessageType.WEB_APP_READY]: (message) => {
+    console.log('Web app ready:', (message.payload as WebAppReadyPayload).timestamp);
+  },
+  [WebToNativeMessageType.BACK_ACTION]: () => {
     webviewRef?.current?.goBack();
   },
-  EXIT_ACTION: () => {
+  [WebToNativeMessageType.EXIT_ACTION]: () => {
     BackHandler.exitApp();
   },
-};
+  [WebToNativeMessageType.UPDATE_ENERGY]: (message) => {
+    const payload = message.payload as UpdateEnergyPayload;
+    console.log('Energy updated:', payload.change, 'New value:', payload.newValue);
+  },
+  [WebToNativeMessageType.SHOW_AD]: (message) => {
+    const payload = message.payload as ShowAdPayload;
+    console.log('Show ad requested:', payload.reason);
+  },
+  [WebToNativeMessageType.MAKE_PURCHASE]: (message) => {
+    const payload = message.payload as MakePurchasePayload;
+    console.log('Purchase requested:', payload.productId, 'Quantity:', payload.quantity);
+  },
+  [WebToNativeMessageType.GET_USER_INFO]: () => {
+    console.log('User info requested');
+  },
+});
 
-export const handleWebviewMessage = (event: WebViewMessageEvent, _webviewRef: RefObject<WebView>) => {
-  webviewRef = _webviewRef;
-  try {
-    const data: MessageData = JSON.parse(event.nativeEvent.data);
-    const handler = handlerMap[data.type];
-    if (!handler) {
-      throw new Error(`Unknown action type: ${data.type}`);
-    }
-    handler(data);
-  } catch (e) {
-    console.error('Failed to parse webview message', e);
-  }
-};
+export const useWebviewBridge = (webviewRef: RefObject<WebView | null>) => {
+  const handleWebviewMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      try {
+        const message = JSON.parse(event.nativeEvent.data) as WebToNativeMessage;
+        const handler = createHandlerMap(webviewRef)[message.type];
+        if (!handler) {
+          throw new Error(`Unknown action type: ${message.type}`);
+        }
+        handler(message);
+      } catch (e) {
+        console.error('Failed to parse webview message', e);
+      }
+    },
+    [webviewRef],
+  );
 
-export const sendEventToWeb = (webviewRef: RefObject<WebView | null>, type: string, payload = {}) => {
-  if (!webviewRef.current) return;
+  const sendEventToWeb = useCallback(
+    <T extends NativeToWebMessageType>(type: T, payload?: unknown) => {
+      if (!webviewRef.current) return;
 
-  const message = JSON.stringify({ type, ...payload });
-  webviewRef.current.injectJavaScript(`
-      window.dispatchEvent(new MessageEvent('message', { data: '${message}' }));
-      true;
-    `);
+      const message: NativeToWebMessage = { type, payload };
+      webviewRef.current.injectJavaScript(`
+        window.dispatchEvent(new MessageEvent('message', { data: '${JSON.stringify(message)}' }));
+        true;
+      `);
+    },
+    [webviewRef],
+  );
+
+  return {
+    handleWebviewMessage,
+    sendEventToWeb,
+  };
 };
