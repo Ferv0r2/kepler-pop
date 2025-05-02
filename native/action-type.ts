@@ -12,7 +12,7 @@ export enum WebToNativeMessageType {
 // Native to Web message types
 export enum NativeToWebMessageType {
   CAN_BACK_STATE = 'CAN_BACK_STATE',
-  SET_USER_INFO = 'SET_USER_INFO',
+  GOOGLE_ID_TOKEN = 'GOOGLE_ID_TOKEN',
   AD_RESULT = 'AD_RESULT',
   PURCHASE_RESULT = 'PURCHASE_RESULT',
 }
