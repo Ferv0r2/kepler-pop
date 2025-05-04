@@ -7,6 +7,7 @@ export enum WebToNativeMessageType {
   SHOW_AD = 'SHOW_AD',
   MAKE_PURCHASE = 'MAKE_PURCHASE',
   GET_USER_INFO = 'GET_USER_INFO',
+  LOGIN_SUCCESS = 'LOGIN_SUCCESS',
 }
 
 // Native to Web message types
@@ -15,6 +16,7 @@ export enum NativeToWebMessageType {
   GOOGLE_ID_TOKEN = 'GOOGLE_ID_TOKEN',
   AD_RESULT = 'AD_RESULT',
   PURCHASE_RESULT = 'PURCHASE_RESULT',
+  NATIVE_ERROR = 'NATIVE_ERROR',
 }
 
 // Base message interface
@@ -65,6 +67,15 @@ export interface PurchaseResultPayload {
   transaction: {
     id: string;
   };
+}
+
+export interface NativeErrorPayload {
+  message: string;
+  stack?: string;
+}
+
+export interface LoginSuccessPayload {
+  success: boolean;
 }
 
 // Typed message interfaces

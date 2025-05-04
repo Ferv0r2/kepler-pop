@@ -46,7 +46,7 @@ const App = () => {
   const webviewRef = useRef<WebView | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
+  const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef, setIsLoggedIn);
 
   useEffect(() => {
     const handleBackButton = () => {
@@ -60,6 +60,13 @@ const App = () => {
     }
   }, [canGoBack, sendEventToWeb]);
 
+  const handleNativeError = (error: any) => {
+    sendEventToWeb(NativeToWebMessageType.NATIVE_ERROR, {
+      message: error?.message || String(error),
+      stack: error?.stack,
+    });
+  };
+
   const handleGoogleLogin = async () => {
     try {
       await GoogleSignin.hasPlayServices();
@@ -72,9 +79,9 @@ const App = () => {
       sendEventToWeb(NativeToWebMessageType.GOOGLE_ID_TOKEN, {
         token: idToken,
       });
-      setIsLoggedIn(true);
     } catch (error) {
       console.error('Failed to login:', error);
+      handleNativeError(error);
     }
   };
 
@@ -87,6 +94,7 @@ const App = () => {
         onMessage={handleWebviewMessage}
         javaScriptEnabled={true}
         domStorageEnabled={true}
+        webviewDebuggingEnabled={true}
         injectedJavaScript={`
         window.ReactNativeWebView = window.ReactNativeWebView || {};
         true;

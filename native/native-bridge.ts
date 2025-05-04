@@ -16,6 +16,7 @@ type WebviewMessageHandler = (message: WebToNativeMessage) => void;
 
 const createHandlerMap = (
   webviewRef: RefObject<WebView | null>,
+  setIsLoggedIn?: (v: boolean) => void,
 ): Record<WebToNativeMessageType, WebviewMessageHandler> => ({
   [WebToNativeMessageType.WEB_APP_READY]: (message) => {
     console.log('Web app ready:', (message.payload as WebAppReadyPayload).timestamp);
@@ -41,14 +42,19 @@ const createHandlerMap = (
   [WebToNativeMessageType.GET_USER_INFO]: () => {
     console.log('User info requested');
   },
+  [WebToNativeMessageType.LOGIN_SUCCESS]: (message) => {
+    if (setIsLoggedIn && message.payload && (message.payload as import('./action-type').LoginSuccessPayload).success) {
+      setIsLoggedIn(true);
+    }
+  },
 });
 
-export const useWebviewBridge = (webviewRef: RefObject<WebView | null>) => {
+export const useWebviewBridge = (webviewRef: RefObject<WebView | null>, setIsLoggedIn?: (v: boolean) => void) => {
   const handleWebviewMessage = useCallback(
     (event: WebViewMessageEvent) => {
       try {
         const message = JSON.parse(event.nativeEvent.data) as WebToNativeMessage;
-        const handler = createHandlerMap(webviewRef)[message.type];
+        const handler = createHandlerMap(webviewRef, setIsLoggedIn)[message.type];
         if (!handler) {
           throw new Error(`Unknown action type: ${message.type}`);
         }
@@ -57,7 +63,7 @@ export const useWebviewBridge = (webviewRef: RefObject<WebView | null>) => {
         console.error('Failed to parse webview message', e);
       }
     },
-    [webviewRef],
+    [webviewRef, setIsLoggedIn],
   );
 
   const sendEventToWeb = useCallback(
