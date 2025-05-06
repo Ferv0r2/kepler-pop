@@ -14,6 +14,8 @@
     "android:bundle:release": "cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
+    "@react-native-firebase/app": "^22.1.0",
+    "@react-native-firebase/auth": "^22.1.0",
     "@react-native-google-signin/google-signin": "^13.2.0",
     "react": "19.0.0",
     "react-native": "0.79.0",

@@ -7,7 +7,7 @@ export enum WebToNativeMessageType {
   SHOW_AD = 'SHOW_AD',
   MAKE_PURCHASE = 'MAKE_PURCHASE',
   GET_USER_INFO = 'GET_USER_INFO',
-  LOGIN_SUCCESS = 'LOGIN_SUCCESS',
+  NEED_TO_LOGIN = 'NEED_TO_LOGIN',
 }
 
 // Native to Web message types

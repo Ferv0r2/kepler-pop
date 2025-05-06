@@ -1,10 +1,11 @@
 import { useWebviewBridge } from './native/native-bridge';
-import { NativeToWebMessageType } from './native/action-type';
+import { NativeToWebMessageType, WebToNativeMessageType } from './native/action-type';
 import React, { useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Svg, Path } from 'react-native-svg';
+import auth from '@react-native-firebase/auth';
 import { GOOGLE_WEB_CLIENT_ID, ENDPOINT } from '@env';
 
 GoogleSignin.configure({
@@ -45,8 +46,8 @@ const GoogleButton = ({ onPress }: { onPress: () => void }) => (
 const App = () => {
   const webviewRef = useRef<WebView | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef, setIsLoggedIn);
+  const [needToLogin, setNeedToLogin] = useState(false);
+  const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
 
   useEffect(() => {
     const handleBackButton = () => {
@@ -71,27 +72,46 @@ const App = () => {
     try {
       await GoogleSignin.hasPlayServices();
       await GoogleSignin.signIn();
-
       const { idToken } = await GoogleSignin.getTokens();
 
       if (!idToken) throw new Error('idToken is null');
 
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      await auth().signInWithCredential(googleCredential);
+
       sendEventToWeb(NativeToWebMessageType.GOOGLE_ID_TOKEN, {
         token: idToken,
       });
+      setNeedToLogin(false);
     } catch (error) {
       console.error('Failed to login:', error);
       handleNativeError(error);
     }
   };
 
+  const onWebviewMessage = (event: any) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+      switch (message.type) {
+        case WebToNativeMessageType.NEED_TO_LOGIN:
+          setNeedToLogin(true);
+          break;
+        default:
+          handleWebviewMessage(event);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* source={{ uri: 'https://kepler-pop.wontae.net' }} */}
       <WebView
         ref={webviewRef}
         source={{ uri: ENDPOINT }}
         onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
-        onMessage={handleWebviewMessage}
+        onMessage={onWebviewMessage}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         webviewDebuggingEnabled={true}
@@ -102,7 +122,7 @@ const App = () => {
         style={styles.webview}
       />
 
-      {!isLoggedIn && <GoogleButton onPress={handleGoogleLogin} />}
+      {needToLogin && <GoogleButton onPress={handleGoogleLogin} />}
     </View>
   );
 };
