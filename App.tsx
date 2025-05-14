@@ -1,12 +1,14 @@
-import { useWebviewBridge } from './native/native-bridge';
-import { NativeToWebMessageType, WebToNativeMessageType } from './native/action-type';
-import React, { useEffect, useRef, useState } from 'react';
-import { BackHandler, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { Svg, Path } from 'react-native-svg';
-import auth from '@react-native-firebase/auth';
 import { GOOGLE_WEB_CLIENT_ID, ENDPOINT } from '@env';
+import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import React, { useEffect, useRef, useState } from 'react';
+import { BackHandler, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Svg, Path } from 'react-native-svg';
+import { WebView } from 'react-native-webview';
+
+import { NativeToWebMessageType, WebToNativeMessageType } from '@/native/action-type';
+import { useWebviewBridge } from '@/native/native-bridge';
+import LoadingScreen from '@/screens/LoadingScreen';
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -47,6 +49,7 @@ const App = () => {
   const webviewRef = useRef<WebView | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [needToLogin, setNeedToLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
 
   useEffect(() => {
@@ -82,7 +85,6 @@ const App = () => {
       sendEventToWeb(NativeToWebMessageType.GOOGLE_ID_TOKEN, {
         token: idToken,
       });
-      setNeedToLogin(false);
     } catch (error) {
       console.error('Failed to login:', error);
       handleNativeError(error);
@@ -105,13 +107,15 @@ const App = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* source={{ uri: 'https://kepler-pop.wontae.net' }} */}
+    <SafeAreaView style={styles.container}>
+      {isLoading && <LoadingScreen />}
       <WebView
         ref={webviewRef}
         source={{ uri: ENDPOINT }}
         onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
         onMessage={onWebviewMessage}
+        onLoadStart={() => setIsLoading(true)}
+        onLoadEnd={() => setIsLoading(false)}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         webviewDebuggingEnabled={true}
@@ -119,11 +123,11 @@ const App = () => {
         window.ReactNativeWebView = window.ReactNativeWebView || {};
         true;
       `}
-        style={styles.webview}
+        style={[styles.webview, isLoading && styles.hidden]}
       />
 
       {needToLogin && <GoogleButton onPress={handleGoogleLogin} />}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -133,6 +137,9 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  hidden: {
+    opacity: 0,
   },
   gsiButton: {
     flexDirection: 'row',
