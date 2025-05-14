@@ -1,15 +1,14 @@
 import { RefObject, useCallback } from 'react';
 import { BackHandler } from 'react-native';
 import WebView, { WebViewMessageEvent } from 'react-native-webview';
+
 import {
   WebToNativeMessage,
   WebToNativeMessageType,
   NativeToWebMessage,
   NativeToWebMessageType,
   WebAppReadyPayload,
-  UpdateEnergyPayload,
   ShowAdPayload,
-  MakePurchasePayload,
 } from './action-type';
 
 type WebviewMessageHandler = (message: WebToNativeMessage) => void;
@@ -26,20 +25,9 @@ const createHandlerMap = (
   [WebToNativeMessageType.EXIT_ACTION]: () => {
     BackHandler.exitApp();
   },
-  [WebToNativeMessageType.UPDATE_ENERGY]: (message) => {
-    const payload = message.payload as UpdateEnergyPayload;
-    console.log('Energy updated:', payload.change, 'New value:', payload.newValue);
-  },
   [WebToNativeMessageType.SHOW_AD]: (message) => {
     const payload = message.payload as ShowAdPayload;
     console.log('Show ad requested:', payload.reason);
-  },
-  [WebToNativeMessageType.MAKE_PURCHASE]: (message) => {
-    const payload = message.payload as MakePurchasePayload;
-    console.log('Purchase requested:', payload.productId, 'Quantity:', payload.quantity);
-  },
-  [WebToNativeMessageType.GET_USER_INFO]: () => {
-    console.log('User info requested');
   },
   [WebToNativeMessageType.NEED_TO_LOGIN]: () => {
     console.log('Need to login');
