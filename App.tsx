@@ -50,6 +50,7 @@ const App = () => {
   const [canGoBack, setCanGoBack] = useState(false);
   const [needToLogin, setNeedToLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
 
   useEffect(() => {
@@ -114,8 +115,15 @@ const App = () => {
         source={{ uri: ENDPOINT }}
         onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
         onMessage={onWebviewMessage}
-        onLoadStart={() => setIsLoading(true)}
-        onLoadEnd={() => setIsLoading(false)}
+        onLoadStart={() => {
+          if (isFirstLoad) setIsLoading(true);
+        }}
+        onLoadEnd={() => {
+          if (isFirstLoad) {
+            setIsLoading(false);
+            setIsFirstLoad(false);
+          }
+        }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         webviewDebuggingEnabled={true}
