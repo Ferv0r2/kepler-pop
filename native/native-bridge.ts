@@ -8,7 +8,7 @@ import {
   NativeToWebMessage,
   NativeToWebMessageType,
   WebAppReadyPayload,
-  ShowAdPayload,
+  EnergyChangePayload,
 } from './action-type';
 
 type WebviewMessageHandler = (message: WebToNativeMessage) => void;
@@ -25,12 +25,13 @@ const createHandlerMap = (
   [WebToNativeMessageType.EXIT_ACTION]: () => {
     BackHandler.exitApp();
   },
-  [WebToNativeMessageType.SHOW_AD]: (message) => {
-    const payload = message.payload as ShowAdPayload;
-    console.log('Show ad requested:', payload.reason);
-  },
   [WebToNativeMessageType.NEED_TO_LOGIN]: () => {
     console.log('Need to login');
+  },
+  [WebToNativeMessageType.ENERGY_CHANGE]: (message) => {
+    const payload = message.payload as EnergyChangePayload;
+    // Ad, Purchase, Reward -> EnergyChange
+    console.log('Energy change:', payload);
   },
 });
 

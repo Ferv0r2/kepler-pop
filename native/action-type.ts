@@ -3,17 +3,17 @@ export enum WebToNativeMessageType {
   WEB_APP_READY = 'WEB_APP_READY',
   BACK_ACTION = 'BACK_ACTION',
   EXIT_ACTION = 'EXIT_ACTION',
-  SHOW_AD = 'SHOW_AD',
   NEED_TO_LOGIN = 'NEED_TO_LOGIN',
+  ENERGY_CHANGE = 'ENERGY_CHANGE',
 }
 
 // Native to Web message types
 export enum NativeToWebMessageType {
   CAN_BACK_STATE = 'CAN_BACK_STATE',
   GOOGLE_ID_TOKEN = 'GOOGLE_ID_TOKEN',
-  AD_RESULT = 'AD_RESULT',
-  PURCHASE_RESULT = 'PURCHASE_RESULT',
+  ENERGY_CHANGE = 'ENERGY_CHANGE',
   NATIVE_ERROR = 'NATIVE_ERROR',
+  RESUME_ACTION = 'RESUME_ACTION',
 }
 
 // Base message interface
@@ -27,23 +27,14 @@ export interface WebAppReadyPayload {
   timestamp: string;
 }
 
-export interface UpdateEnergyPayload {
-  change: number;
-  newValue: number;
-}
-
-export interface ShowAdPayload {
-  reason: 'energy_refill' | 'reward' | 'purchase';
+export interface EnergyChangePayload {
+  amount: number;
+  reason: 'energy_refill' | 'reward' | 'purchase' | 'ad' | 'game';
 }
 
 // Native to Web message payloads
 export interface NavigateStatePayload {
   canGoBack: boolean;
-}
-
-export interface AdResultPayload {
-  success: boolean;
-  reason: string;
 }
 
 export interface NativeErrorPayload {

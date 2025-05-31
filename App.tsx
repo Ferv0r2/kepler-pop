@@ -100,6 +100,13 @@ const App = () => {
         case WebToNativeMessageType.NEED_TO_LOGIN:
           setNeedToLogin(true);
           break;
+        case WebToNativeMessageType.ENERGY_CHANGE:
+          // TODO: call ad or purchase
+          sendEventToWeb(NativeToWebMessageType.ENERGY_CHANGE, {
+            status: 'success',
+            ...message.payload,
+          });
+          break;
         default:
           handleWebviewMessage(event);
       }
