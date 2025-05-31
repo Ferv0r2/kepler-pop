@@ -86,6 +86,7 @@ const App = () => {
       sendEventToWeb(NativeToWebMessageType.GOOGLE_ID_TOKEN, {
         token: idToken,
       });
+      setNeedToLogin(false);
     } catch (error) {
       console.error('Failed to login:', error);
       handleNativeError(error);

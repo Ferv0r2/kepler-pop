@@ -48,7 +48,7 @@ const Star = ({ size, position, delay = 0 }: ItemProps) => {
         ]),
       ]),
     ).start();
-  }, []);
+  }, [delay, opacity, scale]);
 
   return (
     <Animated.View
@@ -109,7 +109,7 @@ const Sparkle = ({ position, size, delay = 0 }: ItemProps) => {
         Animated.delay(Math.random() * 2000),
       ]),
     ).start();
-  }, []);
+  }, [delay, opacity, rotation, scale]);
 
   const spin = rotation.interpolate({
     inputRange: [0, 1],
@@ -161,7 +161,7 @@ const LoadingDots = () => {
     };
 
     Animated.loop(Animated.parallel([animateDot(dot1, 0), animateDot(dot2, 200), animateDot(dot3, 400)])).start();
-  }, []);
+  }, [dot1, dot2, dot3]);
 
   return (
     <View style={styles.dotsContainer}>
