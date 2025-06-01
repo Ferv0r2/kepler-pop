@@ -3,12 +3,15 @@ import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import React, { useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RewardedAd, RewardedAdEventType, TestIds, AdEventType } from 'react-native-google-mobile-ads';
 import { Svg, Path } from 'react-native-svg';
 import { WebView } from 'react-native-webview';
 
+import { GOOGLE_ADS_ID } from '@/constants/basic-config';
 import { NativeToWebMessageType, WebToNativeMessageType } from '@/native/action-type';
 import { useWebviewBridge } from '@/native/native-bridge';
 import LoadingScreen from '@/screens/LoadingScreen';
+import type { RewardInfo } from '@/types/Reward';
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -52,6 +55,8 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
+  const [showRewardedAd, setShowRewardedAd] = useState(false);
+  const [rewardInfo, setRewardInfo] = useState<RewardInfo | null>(null);
 
   useEffect(() => {
     const handleBackButton = () => {
@@ -101,11 +106,10 @@ const App = () => {
           setNeedToLogin(true);
           break;
         case WebToNativeMessageType.ENERGY_CHANGE:
-          // TODO: call ad or purchase
-          sendEventToWeb(NativeToWebMessageType.ENERGY_CHANGE, {
-            status: 'success',
-            ...message.payload,
-          });
+          if (message.payload.reason === 'ad') {
+            setRewardInfo(message.payload);
+            setShowRewardedAd(true);
+          }
           break;
         default:
           handleWebviewMessage(event);
@@ -114,6 +118,32 @@ const App = () => {
       console.error(e);
     }
   };
+
+  useEffect(() => {
+    if (!showRewardedAd) return;
+    const adUnitId = __DEV__ ? TestIds.REWARDED : GOOGLE_ADS_ID;
+    const rewarded = RewardedAd.createForAdRequest(adUnitId);
+    const unsubscribeLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      rewarded.show();
+    });
+    const unsubscribeEarned = rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (_reward) => {
+      sendEventToWeb(NativeToWebMessageType.ENERGY_CHANGE, { status: 'success', ...rewardInfo });
+      setRewardInfo(null);
+    });
+    const unsubscribeClosed = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+      setShowRewardedAd(false);
+    });
+    const unsubscribeError = rewarded.addAdEventListener(AdEventType.ERROR, () => {
+      setShowRewardedAd(false);
+    });
+    rewarded.load();
+    return () => {
+      unsubscribeLoaded();
+      unsubscribeEarned();
+      unsubscribeClosed();
+      unsubscribeError();
+    };
+  }, [showRewardedAd, sendEventToWeb, rewardInfo]);
 
   return (
     <SafeAreaView style={styles.container}>
