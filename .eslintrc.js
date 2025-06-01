@@ -26,7 +26,7 @@ module.exports = {
   },
   settings: {
     'import/resolver': {
-      'babel-module': {},
+      'module-resolver': {},
     },
   },
 };

@@ -1,17 +1,16 @@
-import { GOOGLE_WEB_CLIENT_ID, ENDPOINT } from '@env';
+import { GOOGLE_WEB_CLIENT_ID } from '@env';
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { BackHandler, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RewardedAd, RewardedAdEventType, TestIds, AdEventType } from 'react-native-google-mobile-ads';
 import { Svg, Path } from 'react-native-svg';
 import { WebView } from 'react-native-webview';
 
 import { GOOGLE_ADS_ID } from '@/constants/basic-config';
-import { NativeToWebMessageType, WebToNativeMessageType } from '@/native/action-type';
+import { EnergyChangePayload, NativeToWebMessageType, WebToNativeMessageType } from '@/native/action-type';
 import { useWebviewBridge } from '@/native/native-bridge';
 import LoadingScreen from '@/screens/LoadingScreen';
-import type { RewardInfo } from '@/types/Reward';
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -54,9 +53,15 @@ const App = () => {
   const [needToLogin, setNeedToLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const { handleWebviewMessage, sendEventToWeb } = useWebviewBridge(webviewRef);
+  const { handleWebviewMessage, sendEventToWeb: _sendEventToWeb } = useWebviewBridge(webviewRef);
   const [showRewardedAd, setShowRewardedAd] = useState(false);
-  const [rewardInfo, setRewardInfo] = useState<RewardInfo | null>(null);
+  const [rewardInfo, setRewardInfo] = useState<EnergyChangePayload | null>(null);
+  const rewardedRef = useRef<RewardedAd | null>(null);
+
+  const sendEventToWeb = useCallback(
+    (...args: Parameters<typeof _sendEventToWeb>) => _sendEventToWeb(...args),
+    [_sendEventToWeb],
+  );
 
   useEffect(() => {
     const handleBackButton = () => {
@@ -66,7 +71,10 @@ const App = () => {
       return true;
     };
     if (Platform.OS === 'android') {
-      BackHandler.addEventListener('hardwareBackPress', handleBackButton);
+      const sub = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
+      return () => {
+        sub.remove();
+      };
     }
   }, [canGoBack, sendEventToWeb]);
 
@@ -122,11 +130,14 @@ const App = () => {
   useEffect(() => {
     if (!showRewardedAd) return;
     const adUnitId = __DEV__ ? TestIds.REWARDED : GOOGLE_ADS_ID;
-    const rewarded = RewardedAd.createForAdRequest(adUnitId);
+    if (!rewardedRef.current) {
+      rewardedRef.current = RewardedAd.createForAdRequest(adUnitId);
+    }
+    const rewarded = rewardedRef.current;
     const unsubscribeLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
       rewarded.show();
     });
-    const unsubscribeEarned = rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (_reward) => {
+    const unsubscribeEarned = rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
       sendEventToWeb(NativeToWebMessageType.ENERGY_CHANGE, { status: 'success', ...rewardInfo });
       setRewardInfo(null);
     });
@@ -162,6 +173,12 @@ const App = () => {
             setIsFirstLoad(false);
           }
         }}
+        onError={() => {
+          setIsLoading(false);
+        }}
+        onHttpError={() => {
+          setIsLoading(false);
+        }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         webviewDebuggingEnabled={true}
@@ -170,6 +187,7 @@ const App = () => {
         true;
       `}
         style={[styles.webview, isLoading && styles.hidden]}
+        pointerEvents={needToLogin ? 'none' : 'auto'}
       />
 
       {needToLogin && <GoogleButton onPress={handleGoogleLogin} />}
