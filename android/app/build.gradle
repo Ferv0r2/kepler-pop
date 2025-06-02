@@ -132,4 +132,5 @@ dependencies {
 
     // Firebase Auth 추가
     implementation 'com.google.firebase:firebase-auth:22.3.0'
+    implementation 'com.google.android.gms:play-services-ads:23.0.0'
 }
