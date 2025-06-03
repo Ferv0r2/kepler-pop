@@ -26,7 +26,12 @@ module.exports = {
   },
   settings: {
     'import/resolver': {
-      'module-resolver': {},
+      'babel-module': {
+        root: ['./'],
+        alias: {
+          '@': './',
+        },
+      },
     },
   },
 };
