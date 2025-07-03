@@ -1,4 +1,3 @@
-import { GOOGLE_WEB_CLIENT_ID, ENDPOINT } from '@env';
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview';
 
 import { GoogleButton } from '@/components/buttons/GoogleButton';
-import { GOOGLE_ADS_ID } from '@/constants/basic-config';
+import { GOOGLE_ADS_ID, GOOGLE_WEB_CLIENT_ID, WEBVIEW_URL } from '@/constants/basic-config';
 import { EnergyChangePayload, NativeToWebMessageType, WebToNativeMessageType } from '@/native/action-type';
 import { useWebviewBridge } from '@/native/native-bridge';
 import LoadingScreen from '@/screens/LoadingScreen';
@@ -17,6 +16,8 @@ GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,
   offlineAccess: false,
 });
+
+const SOURCE_URL = __DEV__ ? 'http://58.123.112.15:3001' : WEBVIEW_URL;
 
 const MainScreen = () => {
   const webviewRef = useRef<WebView | null>(null);
@@ -29,6 +30,7 @@ const MainScreen = () => {
   const [rewardInfo, setRewardInfo] = useState<EnergyChangePayload | null>(null);
   const rewardedRef = useRef<RewardedAd | null>(null);
   const insets = useSafeAreaInsets();
+  const [showLoading, setShowLoading] = useState(true);
 
   const sendEventToWeb = useCallback(
     (...args: Parameters<typeof _sendEventToWeb>) => _sendEventToWeb(...args),
@@ -128,13 +130,21 @@ const MainScreen = () => {
     };
   }, [showRewardedAd, sendEventToWeb, rewardInfo]);
 
+  useEffect(() => {
+    if (!isLoading && showLoading) {
+      // fadeout 시작
+      // 실제 unmount는 fadeout 끝난 뒤
+      // setShowLoading(false)는 onFadeOutEnd에서 호출
+    }
+  }, [isLoading, showLoading]);
+
   return (
     <SafeAreaView style={styles.container}>
-      {isLoading && <LoadingScreen />}
+      {/* source={{ uri: 'https://kepler-pop.wontae.net' }} */}
       <WebView
         key="main-screen"
         ref={webviewRef}
-        source={{ uri: ENDPOINT }}
+        source={{ uri: SOURCE_URL }}
         onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
         onMessage={onWebviewMessage}
         onLoadStart={() => {
@@ -154,14 +164,21 @@ const MainScreen = () => {
         }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
-        webviewDebuggingEnabled={true}
+        webviewDebuggingEnabled={__DEV__ ? true : false}
+        originWhitelist={__DEV__ ? ['*'] : [WEBVIEW_URL]}
         injectedJavaScript={`
         window.ReactNativeWebView = window.ReactNativeWebView || {};
         true;
       `}
-        style={[styles.webview, isLoading && styles.hidden]}
+        style={styles.webview}
         pointerEvents={needToLogin ? 'none' : 'auto'}
       />
+
+      {showLoading && (
+        <View style={[styles.loadingOverlay, { paddingBottom: insets.bottom }]}>
+          <LoadingScreen visible={isLoading} onFadeOutEnd={() => setShowLoading(false)} />
+        </View>
+      )}
 
       {needToLogin && (
         <View style={[styles.gsiButtonContainer, { paddingBottom: insets.bottom }]}>
@@ -178,6 +195,11 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   hidden: {
     opacity: 0,

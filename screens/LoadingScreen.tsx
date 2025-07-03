@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions, SafeAreaView } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Dimensions, SafeAreaView } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
@@ -217,7 +217,12 @@ const LoadingDots = () => {
   );
 };
 
-const LoadingScreen = () => {
+interface LoadingScreenProps {
+  visible?: boolean;
+  onFadeOutEnd?: () => void;
+}
+
+const LoadingScreen = ({ visible = true, onFadeOutEnd }: LoadingScreenProps) => {
   const stars = Array.from({ length: 20 }, (_, i) => ({
     id: i,
     size: Math.random() * 4 + 2,
@@ -236,31 +241,74 @@ const LoadingScreen = () => {
     { id: 4, size: 18, position: { x: width * 0.7, y: height * 0.6 }, delay: 1500 },
   ];
 
+  // titleImage scale 애니메이션
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.15,
+          duration: 800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, [scale]);
+
+  // fade 애니메이션
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!visible) {
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished && onFadeOutEnd) onFadeOutEnd();
+      });
+    } else {
+      opacity.setValue(1);
+    }
+  }, [visible, onFadeOutEnd, opacity]);
+
   return (
-    <SafeAreaView style={styles.fullScreen}>
-      <View style={styles.container}>
-        {/* Stars background */}
-        {stars.map((star) => (
-          <Star key={star.id} size={star.size} position={star.position} delay={star.delay} />
-        ))}
+    <Animated.View style={[styles.fullScreen, { opacity }]}>
+      <SafeAreaView style={styles.fullScreen}>
+        <View style={styles.container}>
+          {/* Stars background */}
+          {stars.map((star) => (
+            <Star key={star.id} size={star.size} position={star.position} delay={star.delay} />
+          ))}
 
-        {/* Sparkles */}
-        {sparkles.map((sparkle) => (
-          <Sparkle key={sparkle.id} size={sparkle.size} position={sparkle.position} delay={sparkle.delay} />
-        ))}
+          {/* Sparkles */}
+          {sparkles.map((sparkle) => (
+            <Sparkle key={sparkle.id} size={sparkle.size} position={sparkle.position} delay={sparkle.delay} />
+          ))}
 
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleKepler}>KEPLER</Text>
-          <Text style={styles.titlePop}>POP</Text>
+          {/* Title */}
+          <View style={styles.titleContainer}>
+            <Animated.Image
+              source={require('../assets/images/title.png')}
+              style={[styles.titleImage, { transform: [{ scale }] }]}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Loading text */}
+          <View style={styles.loadingContainer}>
+            <LoadingDots />
+          </View>
         </View>
-
-        {/* Loading text */}
-        <View style={styles.loadingContainer}>
-          <LoadingDots />
-        </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </Animated.View>
   );
 };
 
@@ -269,27 +317,15 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     backgroundColor: '#0A1128',
-    justifyContent: 'center',
     alignItems: 'center',
   },
   titleContainer: {
     alignItems: 'center',
   },
-  titleKepler: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFF9C4',
-    textShadowColor: '#795548',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 1,
-  },
-  titlePop: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FF9800',
-    textShadowColor: '#795548',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 1,
+  titleImage: {
+    marginBottom: 16,
+    marginTop: 96,
+    alignSelf: 'center',
   },
   star: {
     position: 'absolute',
