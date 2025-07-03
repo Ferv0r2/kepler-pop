@@ -31,6 +31,7 @@ const MainScreen = () => {
   const rewardedRef = useRef<RewardedAd | null>(null);
   const insets = useSafeAreaInsets();
   const [showLoading, setShowLoading] = useState(true);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   const sendEventToWeb = useCallback(
     (...args: Parameters<typeof _sendEventToWeb>) => _sendEventToWeb(...args),
@@ -61,6 +62,7 @@ const MainScreen = () => {
 
   const handleGoogleLogin = async () => {
     try {
+      setIsLoginLoading(true);
       await GoogleSignin.hasPlayServices();
       await GoogleSignin.signIn();
       const { idToken } = await GoogleSignin.getTokens();
@@ -77,6 +79,8 @@ const MainScreen = () => {
     } catch (error) {
       console.error('Failed to login:', error);
       handleNativeError(error);
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
@@ -86,6 +90,8 @@ const MainScreen = () => {
       switch (message.type) {
         case WebToNativeMessageType.NEED_TO_LOGIN:
           setNeedToLogin(true);
+
+          GoogleSignin.signOut();
           break;
         case WebToNativeMessageType.ENERGY_CHANGE:
           if (message.payload.reason === 'ad') {
@@ -182,7 +188,8 @@ const MainScreen = () => {
 
       {needToLogin && (
         <View style={[styles.gsiButtonContainer, { paddingBottom: insets.bottom }]}>
-          <GoogleButton onPress={handleGoogleLogin} />
+          {isLoginLoading && <LoadingScreen visible={true} />}
+          {!isLoginLoading && <GoogleButton onPress={handleGoogleLogin} />}
         </View>
       )}
     </SafeAreaView>
