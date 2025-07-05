@@ -1,4 +1,7 @@
 {
   "name": "keplerpop",
-  "displayName": "keplerpop"
+  "displayName": "keplerpop",
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-2202284171552842/9201839619"
+  }
 }

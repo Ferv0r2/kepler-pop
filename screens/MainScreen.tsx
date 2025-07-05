@@ -17,7 +17,7 @@ GoogleSignin.configure({
   offlineAccess: false,
 });
 
-const SOURCE_URL = __DEV__ ? 'http://58.123.112.15:3001' : WEBVIEW_URL;
+const SOURCE_URL = __DEV__ ? 'http://localhost:3001' : WEBVIEW_URL;
 
 const MainScreen = () => {
   const webviewRef = useRef<WebView | null>(null);
@@ -170,7 +170,7 @@ const MainScreen = () => {
         }}
         javaScriptEnabled={true}
         domStorageEnabled={true}
-        webviewDebuggingEnabled={__DEV__ ? true : false}
+        webviewDebuggingEnabled={__DEV__}
         originWhitelist={__DEV__ ? ['*'] : [WEBVIEW_URL]}
         injectedJavaScript={`
         window.ReactNativeWebView = window.ReactNativeWebView || {};
