@@ -1,0 +1,92 @@
+# Claude가 무시할 파일 및 디렉토리
+
+# 의존성 및 빌드 아티팩트
+node_modules/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+dist/
+build/
+.expo/
+
+# 네이티브 빌드 파일
+android/app/build/
+android/.gradle/
+android/app/debug.keystore
+ios/build/
+ios/Pods/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+android/.idea/
+*.iml
+
+# 로그 파일
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 임시 파일
+.tmp/
+.temp/
+*.tmp
+*.temp
+
+# IDE/에디터 설정
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS 생성 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 환경 설정
+.env
+.env.local
+.env.production
+.env.staging
+
+# 테스트 관련
+coverage/
+.nyc_output/
+
+# 기타 캐시
+.eslintcache
+.metro/
+
+# 바이너리 파일
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+*.zip
+*.tar.gz
+
+# 생성된 파일
+*.d.ts.map
+*.js.map
+
+# Flipper
+.flipper/
+
+# Bundle 파일
+*.jsbundle
+*.bundle
+
+# 백업 파일
+*.bak
+*.backup
+
+# 버전 관리
+.git/
+.gitignore 
